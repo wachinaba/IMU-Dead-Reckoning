@@ -31,6 +31,9 @@ include_directories(
 
 add_executable(Imu_Integrator_node src/Imu_Integrator.cpp)
 target_link_libraries(Imu_Integrator_node ${catkin_LIBRARIES})
+add_executable(hard_imu_to_pose src/hard_imu_to_pose.cpp)
+target_link_libraries(hard_imu_to_pose ${catkin_LIBRARIES})
+
 
 #using EIGEN
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})

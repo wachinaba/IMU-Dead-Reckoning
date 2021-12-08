@@ -36,6 +36,8 @@ private:
     Pose pose;
     ros::Time time;
     Eigen::Vector3d gravity;
+    Eigen::Vector3d gravities[100];
+    int g_count;
     Eigen::Vector3d velocity;
     visualization_msgs::Marker path;
     ros::Publisher line_pub;
@@ -56,7 +58,7 @@ public:
     //! Callback function for subscriber.
     void ImuCallback(const sensor_msgs::Imu &msg);
 
-    void setGravity(const geometry_msgs::Vector3 &msg);
+    bool setGravity(const geometry_msgs::Vector3 &msg);
     void updatePath(const Eigen::Vector3d &msg);
     void calcPosition(const geometry_msgs::Vector3 &msg);
     void calcOrientation(const geometry_msgs::Vector3 &msg);

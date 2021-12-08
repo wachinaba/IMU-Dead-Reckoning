@@ -1,9 +1,11 @@
 #include "Imu_Integrator/Imu_Integrator.h"
+#include <cmath>
 
 ImuIntegrator::ImuIntegrator(const ros::Publisher &pub) {
   Eigen::Vector3d zero(0, 0, 0);
   pose.pos = zero;
   pose.orien = Eigen::Matrix3d::Identity();
+  g_count = 0;
   velocity = zero;
   line_pub = pub;
   firstT = true;
@@ -12,7 +14,7 @@ ImuIntegrator::ImuIntegrator(const ros::Publisher &pub) {
   path.color.b = 1.0;
   path.color.a = 1.0;
   path.type = visualization_msgs::Marker::LINE_STRIP;
-  path.header.frame_id = "/global";
+  path.header.frame_id = "map";
   path.ns = "points_and_lines";
   path.action = visualization_msgs::Marker::ADD;
   path.pose.orientation.w = 1.0;
@@ -28,8 +30,13 @@ void ImuIntegrator::ImuCallback(const sensor_msgs::Imu &msg) {
   if (firstT) {
     time = msg.header.stamp;
     deltaT = 0;
-    setGravity(msg.linear_acceleration);
-    firstT = false;
+    firstT = !setGravity(msg.linear_acceleration);
+    ROS_ERROR(
+      "%f, %f, %f", 
+      gravity[0], 
+      gravity[1],
+      gravity[2]
+    );
   } else {
     deltaT = (msg.header.stamp - time).toSec();
     time = msg.header.stamp;
@@ -37,14 +44,53 @@ void ImuIntegrator::ImuCallback(const sensor_msgs::Imu &msg) {
     calcPosition(msg.linear_acceleration);
     updatePath(pose.pos);
     publishMessage();
+    ROS_WARN("x:%f, y:%f, z:%f", pose.pos[0], pose.pos[1], pose.pos[2]);
   }
   // std::cout << pose.pos << std::endl;
 }
 
-void ImuIntegrator::setGravity(const geometry_msgs::Vector3 &msg) {
-  gravity[0] = msg.x;
-  gravity[1] = msg.y;
-  gravity[2] = msg.z;
+bool ImuIntegrator::setGravity(const geometry_msgs::Vector3 &msg) {
+  if (
+    (
+      (std::fabs(msg.x) < 0.3) && 
+      (std::fabs(msg.y) < 0.3) && 
+      (std::fabs(msg.z) > 9.0) && 
+      g_count == 0
+    ) || (
+      (std::fabs(msg.x - gravities[g_count-1][0]) < 0.05) && 
+      (std::fabs(msg.y - gravities[g_count-1][1]) < 0.05) && 
+      (std::fabs(msg.z - gravities[g_count-1][2]) < 0.05) && 
+      g_count > 0
+    )
+  ) {
+    gravities[g_count][0] = msg.x;
+    gravities[g_count][1] = msg.y;
+    gravities[g_count][2] = msg.z;
+    g_count++;
+  } else {
+    g_count = 0;
+  }
+  ROS_WARN("%i", g_count);
+  ROS_ERROR("%f, %f, %f", msg.x, msg.y, msg.z);
+  gravity[0] = 0.0;
+  gravity[1] = 0.0;
+  gravity[2] = 0.0;
+  if (g_count >= 100) {
+    for(int i = 0; i < 100; i++) {
+      for(int j = 0; j < 3; j++) {
+        gravity[j] += gravities[i][j] / 100.0;
+      }
+      ROS_WARN(
+        "%f, %f, %f", 
+        gravities[i][0], 
+        gravities[i][1],
+        gravities[i][2]
+      );
+    }
+    return true;
+  }
+
+  return false;
 }
 
 void ImuIntegrator::updatePath(const Eigen::Vector3d &msg) {

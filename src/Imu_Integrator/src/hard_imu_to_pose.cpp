@@ -6,9 +6,9 @@ ros::Publisher posestamped_pub;
 void imu_callback(const sensor_msgs::Imu& imu_msg){
     geometry_msgs::PoseStamped ps_msg;
     ps_msg.header=imu_msg.header;
-    ps_msg.header.frame_id="map";
+    ps_msg.header.frame_id="base_link";
     ps_msg.pose.orientation=imu_msg.orientation;
-    posestamped_pub.publish(ps_msg);    
+    posestamped_pub.publish(ps_msg);
 }
 
 int main(int argc, char **argv)

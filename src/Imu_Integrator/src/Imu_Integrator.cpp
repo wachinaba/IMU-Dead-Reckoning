@@ -41,10 +41,10 @@ void ImuIntegrator::ImuCallback(const sensor_msgs::Imu &msg) {
     deltaT = (msg.header.stamp - time).toSec();
     time = msg.header.stamp;
     calcOrientation(msg.angular_velocity);
-    calcPosition(msg.linear_acceleration);
+    calcPosition(msg.linear_acceleration, msg.orientation);
     updatePath(pose.pos);
     publishMessage();
-    ROS_WARN("x:%f, y:%f, z:%f", pose.pos[0], pose.pos[1], pose.pos[2]);
+    
   }
   // std::cout << pose.pos << std::endl;
 }
@@ -117,12 +117,28 @@ void ImuIntegrator::calcOrientation(const geometry_msgs::Vector3 &msg) {
                 ((1 - std::cos(sigma)) / std::pow(sigma, 2)) * B * B);
 }
 
-void ImuIntegrator::calcPosition(const geometry_msgs::Vector3 &msg) {
+void ImuIntegrator::calcPosition(const geometry_msgs::Vector3 &msg, const geometry_msgs::Quaternion &q) {
   Eigen::Vector3d acc_l(msg.x, msg.y, msg.z);
-  Eigen::Vector3d acc_g = pose.orien * acc_l;
+  //Eigen::Vector3d acc_g = pose.orien * acc_l;
   // Eigen::Vector3d acc(msg.x - gravity[0], msg.y - gravity[1], msg.z -
   // gravity[2]);
-  velocity = velocity + deltaT * (acc_g - gravity);
+  //velocity = velocity + deltaT * (acc_g - gravity);
+  tf2::Quaternion q_tf(q.x, q.y, q.z, q.w);
+  tf2::Quaternion q_tf_c(-q.x, -q.y, -q.z, q.w);
+  tf2::Quaternion q_v(msg.x, msg.y, msg.z, 0.0);
+
+  tf2::Quaternion q_acc_r = q_tf * q_v * q_tf_c;
+  Eigen::Vector3d acc_r(q_acc_r.getX(), q_acc_r.getY(), q_acc_r.getZ());
+  Eigen::Vector3d acc_g(0.0, 0.0, gravity.norm());
+
+  velocity = velocity + (acc_r - acc_g) * deltaT;
+  auto acc = (acc_r - acc_g);
+
+  ROS_WARN("raw x:%f, y:%f, z:%f", acc_l[0], acc_l[1], acc_l[2]);
+  ROS_WARN("sub x:%f, y:%f, z:%f", acc[0], acc[1], acc[2]);
+  ROS_ERROR("rotated x:%f, y:%f, z:%f", acc_r[0], acc_r[1], acc_r[2]);
+  ROS_ERROR("gravity x:%f, y:%f, z:%f", gravity[0], gravity[1], gravity[2]);
+  
   pose.pos = pose.pos + deltaT * velocity;
 }
 

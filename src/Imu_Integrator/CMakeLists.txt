@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   message_generation
   std_msgs
+  tf2
 )
 
 set(CMAKE_CXX_STANDARD 14)
@@ -22,6 +23,7 @@ catkin_package(
   CATKIN_DEPENDS
     roscpp
     std_msgs
+    tf2
 )
 
 include_directories(

@@ -5,7 +5,8 @@
 #include "ros/ros.h"
 #include "ros/time.h"
 #include <visualization_msgs/Marker.h>
-#include<sensor_msgs/Imu.h>
+#include <sensor_msgs/Imu.h>
+#include <tf2/LinearMath/Quaternion.h>
 #include <Eigen/Dense>
 #include <cmath>
 // Custom message includes. Auto-generated from msg/ directory.
@@ -60,7 +61,7 @@ public:
 
     bool setGravity(const geometry_msgs::Vector3 &msg);
     void updatePath(const Eigen::Vector3d &msg);
-    void calcPosition(const geometry_msgs::Vector3 &msg);
+    void calcPosition(const geometry_msgs::Vector3 &msg, const geometry_msgs::Quaternion &q);
     void calcOrientation(const geometry_msgs::Vector3 &msg);
 };
 
